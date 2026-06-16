@@ -28,57 +28,59 @@ The $\Theta$-H controller is a **hybrid adaptive controller** that:
 | **Control method** | Model‑free, adaptive, with BK memory ($\alpha = 0.98$) |
 
 ## 📁 Repository Structure
-theta-h-control/
-├── paper/ # LaTeX source of the article
-│ ├── article.tex
-│ ├── references.bib
-│ └── figures/ # All main figures (PDF)
-├── code/
-│ ├── sfunctions/ # C S‑Functions ($\Theta$‑H controller & plant)
-│ │ ├── theta_control.c
-│ │ ├── duffing_x4_safe.c
-│ │ ├── compile_sfunctions.m
-│ │ └── README.md
-│ ├── scripts/ # MATLAB scripts for simulation & analysis
-│ │ ├── init_simulation.m
-│ │ ├── run_simulation.m
-│ │ ├── analyze_results.m
-│ │ ├── generate_all_data.m
-│ │ ├── generate_lyapunov_data.m
-│ │ ├── generate_transition_data.m
-│ │ ├── generate_spectrum_data.m
-│ │ └── README.md
-│ └── generate_figures/ # Scripts to generate all figures
-│ ├── generate_all_figures.m
-│ ├── generate_fig1_poincare.m
-│ ├── generate_fig2_lyapunov.m
-│ ├── generate_fig3_transition.m
-│ ├── generate_fig4_spectrum.m
-│ ├── fig_torus_3d.m
-│ ├── fig_recurrence_plot.m
-│ ├── fig_poincare_phase.m
-│ └── README.md
-├── data/ # Raw and processed simulation data
-│ ├── poincare_data.txt
-│ ├── simulation_results.mat
-│ ├── lyapunov_data.mat
-│ ├── transition_data.mat
-│ ├── spectrum_data.mat
-│ ├── analysis_results.mat
-│ ├── simulation_params.mat
-│ ├── generate_all_data.m
-│ └── README.md
-├── supplementary/ # Extra material (not in main paper)
-│ ├── supplementary.pdf
-│ ├── fig_spectrum_comparison.pdf
-│ ├── fig_architecture.pdf
-│ ├── fig_simulink_diagram.pdf
-│ ├── fig_torus_3d.pdf
-│ ├── fig_recurrence_plot.pdf
-│ └── fig_poincare_phase.pdf
-├── LICENSE # MIT License
-└── README.md # This file
 
+```text
+theta-h-control/
+├── paper/                      # LaTeX source of the article
+│   ├── article.tex
+│   ├── references.bib
+│   └── figures/                # All main figures (PDF)
+├── code/
+│   ├── sfunctions/             # C S‑Functions (Theta‑H controller & plant)
+│   │   ├── theta_control.c
+│   │   ├── duffing_x4_safe.c
+│   │   ├── compile_sfunctions.m
+│   │   └── README.md
+│   ├── scripts/                # MATLAB scripts for simulation & analysis
+│   │   ├── init_simulation.m
+│   │   ├── run_simulation.m
+│   │   ├── analyze_results.m
+│   │   ├── generate_all_data.m
+│   │   ├── generate_lyapunov_data.m
+│   │   ├── generate_transition_data.m
+│   │   ├── generate_spectrum_data.m
+│   │   └── README.md
+│   └── generate_figures/       # Scripts to generate all figures
+│       ├── generate_all_figures.m
+│       ├── generate_fig1_poincare.m
+│       ├── generate_fig2_lyapunov.m
+│       ├── generate_fig3_transition.m
+│       ├── generate_fig4_spectrum.m
+│       ├── fig_torus_3d.m
+│       ├── fig_recurrence_plot.m
+│       ├── fig_poincare_phase.m
+│       └── README.md
+├── data/                       # Raw and processed simulation data
+│   ├── poincare_data.txt
+│   ├── simulation_results.mat
+│   ├── lyapunov_data.mat
+│   ├── transition_data.mat
+│   ├── spectrum_data.mat
+│   ├── analysis_results.mat
+│   ├── simulation_params.mat
+│   ├── generate_all_data.m
+│   └── README.md
+├── supplementary/              # Extra material (not in main paper)
+│   ├── supplementary.pdf
+│   ├── fig_spectrum_comparison.pdf
+│   ├── fig_architecture.pdf
+│   ├── fig_simulink_diagram.pdf
+│   ├── fig_torus_3d.pdf
+│   ├── fig_recurrence_plot.pdf
+│   └── fig_poincare_phase.pdf
+├── LICENSE                     # MIT License
+└── README.md                   # This file
+```
 
 ## 🛠️ Requirements
 
@@ -124,13 +126,14 @@ cd ../..
 All figures will appear in paper/figures/ and supplementary/.
 
 ## 📊 Results at a Glance
+
 | Figure | Description | Location |
-|---------|---------------------|
-|**Figure 1** |	Poincaré map – two concentric ellipses|	paper/figures/fig_poincare.pdf|
-|**Figure 2**|	Lyapunov exponent calculation|	paper/figures/fig_lyapunov.pdf|
-|**Figure 3**|	Spontaneous transition between regimes|	paper/figures/fig_transicao.pdf|
-|**Figure 4**|	Power spectrum (Hann window)|	paper/figures/fig_spectrum.pdf|
-|**Supplementary**|	3D torus, recurrence plot, phase‑colored Poincaré section, etc.|	supplementary/|
+|--------|-------------|----------|
+| **Figure 1** | Poincaré map – two concentric ellipses | `paper/figures/fig_poincare.pdf` |
+| **Figure 2** | Lyapunov exponent calculation | `paper/figures/fig_lyapunov.pdf` |
+| **Figure 3** | Spontaneous transition between regimes | `paper/figures/fig_transicao.pdf` |
+| **Figure 4** | Power spectrum (Hann window) | `paper/figures/fig_spectrum.pdf` |
+| **Supplementary** | 3D torus, recurrence plot, phase‑colored Poincaré section, etc. | `supplementary/` |
 
 ## 📝 License
 This project is licensed under the MIT License – see the LICENSE file for details.
