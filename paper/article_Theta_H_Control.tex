@@ -1,0 +1,712 @@
+\documentclass[twocolumn]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath, amssymb, amsfonts}
+\usepackage{graphicx}
+%\usepackage{hyperref}
+\usepackage[hidelinks]{hyperref}
+\usepackage{cite}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+
+% arXiv metadata
+\hypersetup{
+    pdftitle={$\Theta$-H Control: From Explosive Divergence to Quasi-Periodic Order in Quartic Nonlinear Systems},
+    pdfauthor={Marconi Kolm Madrid},
+    pdfsubject={Nonlinear Control, Quasi-Periodic Systems},
+    pdfkeywords={$\Theta$-H Control, Quartic Nonlinearity, Quasi-Periodic Systems, Explosive Dynamics, Lyapunov Exponent},
+    pdfpagelabels=true,
+    plainpages=false,
+}
+
+% Page settings
+\setlength{\columnsep}{0.5cm}
+\setlength{\parindent}{0cm}
+\setlength{\parskip}{0.3cm}
+\setlength{\textwidth}{6.5in}
+\setlength{\textheight}{9in}
+\setlength{\oddsidemargin}{0in}
+\setlength{\topmargin}{0in}
+
+% Keywords command
+\providecommand{\keywords}[1]{\textbf{Keywords:} #1}
+
+% Title
+\title{$\Theta$-H Control: From Explosive Divergence to Quasi-Periodic Order\\
+\large{in Quartic Nonlinear Systems}}
+
+\author{
+\parbox{0.9\textwidth}
+\centering
+Marconi Kolm Madrid\\
+\texttt{madrid@unicamp.br}\\
+[0.5em]
+Departamento de Sistemas de Energia\\
+Faculdade de Engenharia Elétrica e de Computação\\
+Universidade Estadual de Campinas (UNICAMP)
+}
+\date{\today}
+
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This paper presents $\Theta$-H, a hybrid adaptive controller capable 
+of transforming explosive dynamical systems into stable quasi-periodic 
+behavior. The application is demonstrated to a system with quartic nonlinearity ($x^4$), which in open loop diverges to infinity in finite time -- a more severe behavior than chaos Under $\Theta$-H 
+action, the explosive system is stabilized and organized into a 
+quasi-periodic attractor with Lyapunov exponent $\lambda = 0.0014 
+\approx 0$, characterized by a torus in the Poincar\'e map and the 
+presence of multiple coexisting orbits. The controller operates 
+without prior knowledge of the model, learning the dynamics through 
+safe autonomous exploration. Experimental results show a spontaneous 
+transition between low and high amplitude orbits after approximately 
+4300 crossings, maintaining the same fundamental frequency. $\Theta$-H 
+represents a new paradigm for controlling systems with severe 
+nonlinearities, offering an alternative to traditional mathematical 
+modeling.
+\end{abstract}
+
+\keywords{$\Theta$-H Control, Quartic Nonlinearity, Quasi-Periodic 
+Systems, Explosive Dynamics, Lyapunov Exponent.}
+
+\section{Introduction}
+
+\subsection{Context and Motivation}
+
+Nonlinear dynamical systems exhibit complex behaviors such as 
+bifurcations, chaos, and in extreme cases, explosive divergence 
+\cite{Ueda1979, Lorenz1963, Ott1990}. While chaos has been extensively 
+studied, systems with higher-order nonlinearities (quartic, quintic) 
+remain less explored due to their tendency toward catastrophic 
+instability \cite{Khalil2002}.
+
+The Duffing oscillator ($x^3$) \cite{Ueda1979} is a paradigmatic 
+example of chaos. However, systems with $x^4$ nonlinearity -- here 
+termed quartic oscillators -- exhibit qualitatively different behavior: 
+explosive divergence in open loop. Controlling such systems is a 
+significantly greater challenge, as there is no natural attractor 
+to tame.
+
+Recent advances in data-driven control have introduced 
+model-free approaches based on machine learning \cite{Koeglmayr2026}, 
+but these require extensive offline training. Adaptive methods 
+for high-order nonlinear systems \cite{Zhang2025} achieve 
+fixed-time convergence at the cost of high computational 
+complexity. Chen et al. \cite{Chen2007} demonstrated the 
+generation of quasi-periodic and chaotic attractors via 
+switching schemes, though without autonomous learning 
+capabilities. The present work fills this gap with Theta-H, 
+a controller that combines computational simplicity, 
+real-time learning, and the unique ability to handle 
+explosive systems.
+
+\subsection{Contributions}
+
+This paper presents the following contributions:
+
+\begin{enumerate}
+    \item A novel hybrid adaptive controller, called $\Theta$-H,
+    combining state feedback with BK memory and autonomous learning.
+    
+    \item The first demonstration of controlling an explosive 
+    quartic system, transforming its dynamics into stable 
+    quasi-periodic behavior.
+    
+    \item Discovery of a rare phenomenon: multiple coexisting 
+    quasi-periodic orbits on the same torus, with spontaneous 
+    transition between low and high amplitude regimes.
+    
+    \item Experimental evidence of Lyapunov exponent 
+    $\lambda = 0.0014 \approx 0$, confirming the quasi-periodic 
+    nature of the controlled system.
+\end{enumerate}
+
+\subsection{Paper Organization}
+
+Section~\ref{sec:theta_h} describes the $\Theta$-H architecture.
+Section~\ref{sec:mechanics} details the internal mechanics, including 
+the BK memory, safe autonomous exploration.
+Section~\ref{sec:system} presents the quartic system. 
+Section~\ref{sec:results} shows experimental results. 
+Section~\ref{sec:discussion} discusses implications. 
+Section~\ref{sec:conclusion} concludes.
+
+\section{$\Theta$-H Architecture}
+\label{sec:theta_h}
+
+\subsection{General Structure}
+
+$\Theta$-H is defined by:
+\begin{equation}
+u(t) = -K \cdot x(t) + u_\Theta(t) + u_{BK}(t)
+\label{eq:theta_h}
+\end{equation}
+where:
+\begin{itemize}
+    \item $K = [K_1, K_2]$ are fixed gains ($K_1=8$, $K_2=6$ in this work)
+    \item $u_\Theta$(t) is the adaptive (learned) action
+    \item $u_{BK}(t)$ is the BK memory (low-pass filter)
+\end{itemize}
+
+\subsection{$\Theta$ Action}
+
+The $\Theta$ action is given by an adaptive PID controller:
+\begin{equation}
+u_\theta = K_p e + K_i \int e \, dt + K_d \dot{e}
+\label{eq:theta_action}
+\end{equation}
+With gains derived from $\tau$ parameters:
+\begin{equation}
+K_p = \frac{1.2}{\tau_1}, \quad 
+K_i = \frac{0.6}{\tau_1 \tau_2}, \quad 
+K_d = 0.5\, \tau_1\, \tau_3
+\label{eq:gains}
+\end{equation}
+In this work, the values $\tau_1 = 0.5$, $\tau_2 = 0.4$, $\tau_3 = 0.1$ are used.
+
+\subsection{BK Memory}
+
+The BK memory acts as a low-pass filter:
+\begin{equation}
+u_{BK}(t) = \alpha \cdot u_{BK}(t-dt) + (1-\alpha) \cdot u_{fb}(t)~,
+\label{eq:bk}
+\end{equation}
+where $\alpha = 0.98$ is the memory factor, and $u_{fb}(t) = -K \cdot x(t)$.
+
+\subsection{Autonomous Learning}
+
+$\Theta$-H learns the plant dynamics through:
+
+\begin{enumerate}
+    \item Safe exploration with increasing amplitude impulses
+    \item Identification of the growth rate $\lambda$
+    \item Autonomous adjustment of the time window
+\end{enumerate}
+
+\section{$\Theta$-H Internal Mechanics: The Learning Engine}
+\label{sec:mechanics}
+
+\subsection{The Memory-BK Low-Pass Filter}
+
+One of the key innovations of $\Theta$-H is the BK memory mechanism:
+{\small
+\begin{equation}
+u_{BK}(t) = \alpha u_{BK}(t-dt) + (1-\alpha) u_{fb}(t), \quad \alpha = 0.98
+\label{eq:bk_filter}
+\end{equation}
+}
+This first-order low-pass filter introduces a time-delayed feedback 
+that creates an emergent quasi-periodic structure. Without BK ($\alpha=0$), 
+the controller becomes purely instantaneous and the system remains chaotic 
+or explosive. With BK ($\alpha \approx 1$), the controller gains a 
+memory of its own past actions, creating a self-referential 
+dynamical system.
+
+\subsection{Safe Autonomous Exploration of Explosive Plants}
+
+Learning the dynamics of an explosive system requires extreme caution. 
+$\Theta$-H employs a hierarchical exploration strategy:
+
+\begin{enumerate}
+    \item Impulse Testing: Small amplitude impulses ($A = 0.01$) 
+    are applied. If the response is below a safety threshold ($|y| < 0.1$),
+    amplitude is doubled.
+    
+    \item Time Window Adaptation: The identification window is 
+    automatically shifted later in time ($t_{window} = 1.2, 1.4, 1.6, ...$) 
+    until the estimated growth rate $\lambda$ stabilizes.
+    
+    \item Learning Convergence: After approximately 10-15 safe 
+    impulses, the system's effective parameters are identified with 
+    sufficient accuracy to design the compensator.
+\end{enumerate}
+
+\subsection{Why $\Theta$-H Transforms Explosive Dynamics into Quasi-Periodicity}
+
+The controlled quartic system exhibits an emergent property: 
+spontaneous transitions between low and high amplitude orbits 
+with identical fundamental frequency. This phenomenon is explained by 
+the interaction between:
+
+\begin{enumerate}
+    \item The linearized plant dynamics (after compensation)
+    \item The BK memory (introducing phase delay)
+    \item The residual nonlinearity (uncompensated $x^4$ term)
+\end{enumerate}
+
+Mathematically, the closed-loop system approximates:
+\begin{equation}
+x'' + \delta x' + \beta x = F\cos(\omega t) + \varepsilon(x,t)~,
+\label{eq:closed_loop}
+\end{equation}
+where $\varepsilon(x,t)$ is the residual error from imperfect compensation. 
+This residual, though small, is sufficient to maintain the system on a 
+torus rather than collapsing to a point or diverging.
+
+\subsection{Comparison with Existing Methods}
+
+\begin{table*}[htb]
+\centering
+\caption{Comparison of Control Methods for Explosive Nonlinear Systems}
+\label{tab:comparison_methods}
+{\small
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+\textbf{Method} & \textbf{Model Required} & \textbf{Adaptive} & \textbf{Explosive Plants} & \textbf{Quasi-Periodic Output} \\
+\hline
+PID & No & No & No & No \\
+\hline
+LQR & Yes & No & No & No \\
+\hline
+Sliding Mode & Partial & Yes & Limited & No \\
+\hline
+MPC & Yes & Yes & No & No \\
+\hline
+Backstepping & Yes & No & No & No \\
+\hline
+$\Theta$-H & No & Yes & Yes & Yes \\
+\hline
+\end{tabular}
+}
+\end{table*}
+
+\subsection{The Emergent Torus: A New Type of Attractor}
+
+Perhaps the most surprising result is that $\Theta$-H does not force the 
+system to a fixed point, but rather to a quasi-periodic torus. 
+This is counterintuitive: a controller designed to stabilize might be 
+expected to drive the system to equilibrium. However, the combination 
+of state feedback ($-Kx$) and BK memory creates a self-sustaining 
+oscillation at a frequency determined by the closed-loop dynamics.
+
+The torus is characterized by:
+\begin{equation}
+r(\theta) = r_0 + A_1 \sin(2\pi \theta / T) + A_2 \sin(4\pi \theta / T) + \cdots
+\label{eq:torus}
+\end{equation}
+where $r_0 \approx 0.384$, $T \approx 147$ crossings, and the modulation 
+amplitudes $A_1 \approx 0.155$, $A_2 \approx 0.078$.
+
+Table~\ref{tab:torus_params} summarizes the emergent torus characteristics.
+
+\begin{table}[htb]
+\centering
+\caption{Emergent Torus Characteristics}
+\label{tab:torus_params}
+{\small
+\begin{tabular}{|l|c|}
+\hline
+\textbf{Parameter} & \textbf{Value} \\
+\hline
+Mean radius $r_0$ & 0.384 \\
+\hline
+Radius standard deviation & 0.155 (40\%) \\
+\hline
+Angular increment & -0.0426 rad \\
+\hline
+Points per revolution & $\approx 147.5$ \\
+\hline
+Fundamental period & $\approx 128$ s \\
+\hline
+Low amplitude regime & $\pm 0.1$ \\
+\hline
+High amplitude regime & $\pm 0.6$ \\
+\hline
+Transition point & $\approx 4300$ crossings \\
+\hline
+Lyapunov exponent & $0.0014 \approx 0$ \\
+\hline
+Attractor center & $(-0.0102, -0.0102)$ \\
+\hline
+\end{tabular}
+}
+\end{table}
+
+\subsection{Energy Considerations}
+
+The observed spontaneous transition from low to high amplitude ($\pm 0.1$ 
+to $\pm 0.6$) occurs after $\approx 4300$ crossings ($\approx 3600$ s). 
+This suggests the existence of multiple stable orbits on the same 
+torus, and the system can "jump" between them when perturbed by numerical 
+noise or residual errors. A similar structure of concentric ellipses 
+in phase space was observed by Chen et al. \cite{Chen2007} using 
+switching schemes, suggesting that toroidal attractors may be a 
+universal feature of certain controlled systems.
+
+The energy required for control is reflected in the magnitude of 
+$u_{BK}(t)$, which reaches peaks of $\approx 10$ during transitions.
+
+\subsection{What Makes $\Theta$-H Different}
+
+Unlike conventional controllers that attempt to eliminate 
+nonlinearities, $\Theta$-H compensates them just enough to make 
+the system behave as desired. It does not require:
+
+\begin{itemize}
+    \item Mathematical model of the plant
+    \item Prior knowledge of the nonlinearity order ($x^3$, $x^4$, or higher)
+    \item Gain scheduling or parameter tuning
+    \item Separation of identification and control phases
+\end{itemize}
+
+The controller learns the necessary compensation through safe 
+exploration and stores it implicitly in the BK memory and integral 
+action. This is a fundamental departure from model-based control.
+
+\section{Quartic System}
+\label{sec:system}
+
+\subsection{Definition}
+
+The following system is considered:
+\begin{equation}
+x'' + \delta x' + \beta x + \alpha x^4 = F \cos(\omega t) + u
+\label{eq:quartic}
+\end{equation}
+With parameters: $\delta = 0.25$, $\beta = -1$, $\alpha = 1$, $F = 0.3$, 
+$\omega = 1.2$.
+
+\subsection{Open Loop Behavior}
+
+Without control ($u=0$), the system diverges to $\pm\infty$ in finite 
+time. This contrasts with the Duffing oscillator ($x^3$), which remains 
+bounded even in chaotic regimes.
+
+\subsection{Control Challenge}
+
+Controlling this system is particularly challenging because:
+
+\begin{enumerate}
+    \item There is no natural attractor to stabilize
+    \item The quartic nonlinearity grows rapidly
+    \item Small control errors can lead to explosion
+\end{enumerate}
+
+\section{Experimental Results}
+\label{sec:results}
+
+\subsection{Experimental Setup}
+
+Numerical simulation was performed with:
+\begin{itemize}
+    \item Integration step: $dt = 0.001$ s
+    \item Total time: $20,000$ s
+    \item $\Theta$-H controller with $\tau_1=0.5$, $\tau_2=0.4$, $\tau_3=0.1$
+    \item Gains $K$: $K_1=8$, $K_2=6$
+\end{itemize}
+
+\subsection{Poincar\'e Map}
+
+The Poincar\'e map of the controlled system, shown in Figure~\ref{fig:poincare}, 
+is constructed from crossings of the section defined by $x_2 = 0$ with 
+increasing phase. This map reveals a striking structure: two concentric 
+nearly-circular ellipses centered at $(-0.0102, -0.0102)$, practically 
+at the origin.
+
+\begin{figure}[htb]
+\centering
+\includegraphics[width=0.9\columnwidth]{fig_poincare.pdf}
+\caption{Poincar\'e map showing two concentric nearly-circular ellipses. 
+The inner ellipse (radius $r_{in} \approx 0.274$) contains $59.6\%$ of the 
+points, while the outer ellipse (radius $r_{out} \approx 0.577$) contains 
+$40.4\%$. The excentricities are $e_{in} = 0.0392$ and $e_{out} = 0.0057$, 
+indicating nearly perfect circles. The radius ratio $r_{out}/r_{in} \approx 
+2.11$ reveals a harmonic relationship between the two coexisting orbits.}
+\label{fig:poincare}
+\end{figure}
+The inner ellipse, containing the majority of points ($59.6\%$), corresponds 
+to a low-amplitude orbit ($\pm 0.1$), while the outer ellipse ($40.4\%$ of 
+points) corresponds to a high-amplitude orbit ($\pm 0.6$). Both ellipses 
+exhibit extremely low excentricities ($e_{in} = 0.0392$, $e_{out} = 0.0057$), 
+meaning they are nearly perfect circles. This near-circularity suggests 
+that the dynamics on each torus are highly regular and close to harmonic 
+oscillation.
+
+The radius ratio $r_{out}/r_{in} \approx 2.11$ is particularly noteworthy, 
+as it is very close to $2$. This harmonic relationship indicates a possible 
+resonance between the two coexisting orbits. The spontaneous transition 
+between these orbits, observed after approximately $4300$ crossings, 
+suggests that the system can "jump" from one quasi-periodic state to 
+another without external perturbation -- a phenomenon rarely documented 
+in controlled nonlinear systems.
+
+\subsection{Lyapunov Exponent}
+
+Figure~\ref{fig:lyapunov} presents the Lyapunov exponent calculation.
+
+\begin{figure}[htb]
+\centering
+\includegraphics[width=0.95\columnwidth]{fig_lyapunov.pdf}
+\caption{Lyapunov exponent calculation using the Wolf method \cite{Wolf1985}, implementado conforme a abordagem prática de Rosenstein \cite{rosenstein1993}. 
+The experimental data (blue dots) show the evolution of the 
+logarithmic distance between neighboring trajectories. 
+The linear fit (red line) yields a slope of $\lambda = 0.0014$, 
+which is approximately zero. This confirms that the controlled 
+system is quasi-periodic, not chaotic (typical chaotic systems 
+exhibit $\lambda > 0.1$).}
+\label{fig:lyapunov}
+\end{figure}
+
+The obtained value is:
+\begin{equation}
+\lambda = 0.0014 \approx 0
+\label{eq:lyapunov_value}
+\end{equation}
+This value is practically zero, confirming that the controlled 
+system is quasi-periodic, not chaotic.
+
+\subsection{Spontaneous Transition}
+
+Figure~\ref{fig:transicao} shows a spontaneous transition between 
+two operating regimes.
+
+\begin{figure}[htb]
+\centering
+\includegraphics[width=1\columnwidth]{fig_transicao.pdf}
+\caption{Spontaneous transition between low and high amplitude orbits.}
+\label{fig:transicao}
+\end{figure}
+
+After approximately 4300 crossings ($\approx 3600$ seconds), the system 
+spontaneously transitions from a low amplitude orbit ($\pm 0.1$) to a 
+high amplitude orbit ($\pm 0.6$), maintaining the same fundamental 
+frequency.
+
+\subsection{Frequency Spectrum}
+
+Figure~\ref{fig:spectrum} shows the power spectrum of the controlled 
+system's position signal $x(t)$, calculated using the Welch method 
+with a Hanning window.
+
+\begin{figure}[htb]
+\centering
+\includegraphics[width=1\columnwidth]{fig_spectrum}
+\caption{Power spectrum of the controlled system (Hanning window). 
+The spectrum exhibits a dominant peak at approximately $0.16$ Hz and 
+a secondary peak at $0.80$ Hz. A re-excitation is observed between 
+$2.6$ and $5.0$ Hz. The ratio $f_2/f_1 \approx 5$ is harmonically 
+related to the radius ratio $r_{out}/r_{in} \approx 2.11$ observed 
+in the Poincar\'e map (Figure~\ref{fig:poincare}).}
+\label{fig:spectrum}
+\end{figure}
+
+\section{Discussion}
+\label{sec:discussion}
+
+The results presented in this work demonstrate that $\Theta$-H is capable of 
+stabilizing an intrinsically explosive quartic oscillator, organizing it 
+into a quasi-periodic attractor with Lyapunov exponent $\lambda = 0.0014 
+\approx 0$.
+
+The most surprising finding is the emergence of two 
+concentric nearly-circular ellipses in the Poincar\'e map, with 
+excentricities $e_{in} = 0.0392$ and $e_{out} = 0.0057$, and a radius 
+ratio of approximately $2.11:1$. This indicates the existence of 
+two distinct coexisting quasi-periodic orbits on the same torus.
+
+The spontaneous transition between low ($\pm 0.1$) and high ($\pm 0.6$) 
+amplitude regimes after approximately $4300$ crossings suggests that 
+the system possesses at least two stable orbits on the same invariant 
+manifold. The fact that both regimes share the same fundamental 
+frequency ($\approx 128$ s) indicates that the transition is not a 
+traditional bifurcation, but rather a "jump" between two attractors 
+within the same torus.
+
+When compared to existing control methods, $\Theta$-H stands out for its 
+ability to handle explosive nonlinearities without requiring a 
+mathematical model. Traditional controllers such as PID or LQR either 
+fail or require extensive tuning; advanced methods like sliding mode 
+or backstepping \cite{Slotine1991} demand partial model knowledge and are not designed 
+for intrinsically unstable plants. Recent machine learning approaches 
+\cite{Koeglmayr2026} offer model-free control but require extensive 
+offline training, while adaptive fixed-time methods \cite{Zhang2025} 
+achieve convergence guarantees at the cost of high complexity. 
+Table~\ref{tab:comparison_methods} summarizes these differences.
+
+The main limitation of the proposed approach is the need for sufficient 
+actuator energy to compensate for the explosive nonlinearity. However, the discovery of 
+multiple coexisting quasi-periodic orbits opens new questions about 
+the structure of controlled nonlinear systems.
+
+In the present simulations, the control signal $u_{BK}(t)$ reached peaks of 
+approximately 10 during transitions, which may be demanding for certain 
+hardware implementations. However, for systems where energy is not a 
+limiting factor, $\Theta$-H offers a powerful and practical solution.
+
+Another important observation is that the residual nonlinearity 
+$\varepsilon(x,t)$ -- arising from imperfect compensation -- plays a 
+crucial role in maintaining the system on the torus. If compensation 
+were perfect, the system would likely collapse to a fixed point or a 
+simple limit cycle. The slight imperfection is what gives rise to the 
+rich quasi-periodic structure observed. This suggests that $\Theta$-H does 
+not simply "cancel" nonlinearities but rather "sculpts" them into a 
+desired form.
+
+Finally, the fact that $\Theta$-H operates without knowledge of whether 
+the nonlinearity is $x^3$, $x^4$, or any other function suggests a 
+degree of universality. The controller learns the necessary compensation 
+from observations alone, making it applicable to a wide range of systems 
+with severe nonlinearities.
+
+\subsection{Comparison with Literature}
+
+Table~\ref{tab:comparison} compares the controlled quartic system 
+with the classical Duffing oscillator. While the Duffing oscillator 
+($x^3$) exhibits bounded chaotic behavior, the quartic system ($x^4$) 
+diverges explosively in open loop -- a significantly more severe 
+instability. The Lyapunov exponent of the controlled quartic system 
+($\lambda = 0.0014 \approx 0$) is orders of magnitude smaller than 
+typical values for chaotic Duffing ($\lambda \approx 0.1-0.3$), 
+confirming the quasi-periodic nature of the controlled dynamics. 
+To the best of our knowledge, this is the first demonstration of 
+controlling an explosive quartic system and organizing it into a 
+stable quasi-periodic attractor with two concentric nearly-circular 
+ellipses.
+\begin{table*}[htb]
+\centering
+\caption{Comparison between Duffing ($x^3$) and Quartic ($x^4$) Systems}
+\label{tab:comparison}
+{\small
+\begin{tabular}{|l|c|c|}
+\hline
+\textbf{Aspect} & \textbf{Duffing ($x^3$)} & \textbf{Quartic ($x^4$)} \\
+\hline
+Natural behavior & Chaotic & Explosive \\
+\hline
+Control challenge & Medium & Very High \\
+\hline
+Lyapunov exponent & $\approx 0.1-0.3$ & $\approx 0.0014$ \\
+\hline
+This work & - & $\checkmark$ First demonstration \\
+\hline
+\end{tabular}
+}
+\end{table*}
+The table highlights the fundamental differences between the two 
+systems and the unprecedented nature of our results. The quartic 
+system, left uncontrolled, diverges to infinity in finite time -- 
+a behavior that cannot be characterized as chaotic in the traditional 
+sense. The fact that $\Theta$-H not only stabilizes this explosive 
+system but also organizes it into a structured quasi-periodic 
+attractor with two concentric nearly-circular ellipses represents 
+a significant advance in nonlinear control theory.
+
+\subsection{Universality of the Method}
+
+$\Theta$-H requires no prior knowledge of the model, operating through 
+autonomous learning. The controller learns the necessary compensation 
+through safe exploration, without needing to know the order of the 
+nonlinearity ($x^3$, $x^4$, or higher). This suggests the approach 
+can be extended to other classes of systems with severe nonlinearities, 
+including higher-order polynomial nonlinearities ($x^5$, $x^6$), 
+systems with hysteresis, and even chaotic systems such as Lorenz 
+or R\"ossler.
+
+The key features that contribute to this universality are:
+
+\begin{itemize}
+    \item Model-free operation: No mathematical model of 
+    the plant is required.
+    
+    \item Autonomous learning: The controller learns the 
+    dynamics through safe exploration, without offline training data.
+    
+    \item BK memory: The low-pass filter creates emergent 
+    quasi-periodic structures without requiring precise compensation.
+    
+    \item Robustness: The controller maintains stability 
+    across a wide range of parameters, as demonstrated by the 
+    spontaneous transitions between orbits.
+\end{itemize}
+
+These characteristics make $\Theta$-H a promising candidate for 
+real-world applications where accurate models are unavailable 
+or where systems exhibit complex, poorly understood dynamics.
+
+\section{Conclusion and Future Work}
+\label{sec:conclusion}
+This paper has introduced $\Theta$-H, a hybrid adaptive controller that 
+combines state feedback with BK memory and autonomous learning. The 
+controller was successfully applied to a quartic oscillator ($x^4$) - 
+a system that diverges explosively in open loop.
+
+The most significant findings of this work are twofold. First, $\Theta$-H 
+transforms the explosive quartic oscillator into a stable quasi-periodic 
+attractor with Lyapunov exponent $\lambda = 0.0014 \approx 0$, confirming 
+its non-chaotic nature. Second, and more remarkably, the Poincar\'e map 
+reveals two concentric nearly-circular ellipses with excentricities 
+$e_{in} = 0.0392$ and $e_{out} = 0.0057$, and a harmonic radius ratio 
+of approximately $2.11:1$. This indicates the existence of two distinct 
+coexisting quasi-periodic orbits on the same torus -- a structure that, 
+to the best of our knowledge, has not been previously documented in 
+controlled explosive systems.
+
+The spontaneous transition between low ($\pm 0.1$) and high ($\pm 0.6$) 
+amplitude regimes after approximately $4300$ crossings further 
+demonstrates the richness of the controlled dynamics. Both regimes 
+share the same fundamental frequency ($\approx 128$ s), suggesting 
+that the transition is not a traditional bifurcation but rather a 
+jump between two attractors within the same invariant manifold.
+
+Several directions for future work remain open. The demonstration 
+of arbitrary trajectory tracking -- such as ramps or parabolas -- would 
+further establish the controller's capabilities. Extension to other 
+explosive systems ($x^5$, $x^6$) and to other chaotic systems 
+(Lorenz, R\"ossler, Chua) would test the universality of the approach. 
+Hardware implementation on a physical circuit would validate practical 
+feasibility. A theoretical analysis of the learning convergence and 
+stability guarantees would provide mathematical foundations. Finally, 
+a deeper investigation into the spontaneous orbit transitions and the 
+emergence of multiple nearly-circular ellipses could reveal new 
+insights into the structure of quasi-periodic attractors.
+
+In summary, $\Theta$-H represents a paradigm shift in nonlinear system 
+control. Instead of asking ``what is this system?'', it asks 
+``what do you want it to be?''. With sufficient actuator energy, 
+Theta-H delivers.
+
+Beyond its technical contributions, this work raises fundamental 
+questions about the nature of controlled nonlinear systems. The emergence
+ of two concentric nearly-circular ellipses with harmonic radius ratio 
+ \mbox{$2.11:1$} suggests that $\Theta$-H does not merely suppress 
+ nonlinearities but actively organizes them into structured, predictable 
+ patterns. This is reminiscent of self-organization phenomena observed in nature, 
+ from the formation of spiral galaxies to the synchronization of biological 
+ oscillators. The fact that such order can emerge from explosive dynamics 
+ through a simple, model-free controller hints at a deeper principle: that 
+ complex systems, when appropriately compensated, naturally tend toward 
+ harmonic structures. Whether this principle extends to other classes 
+ of nonlinearities -- such as quintic or higher-order terms -- remains 
+ an open question that merits further investigation.
+
+\subsection{Future Work}
+
+Next steps include:
+\begin{enumerate}
+    \item Demonstration of arbitrary trajectory tracking
+    (ramps, parabolas) in the quartic system
+    
+    \item Extension to other explosive systems ($x^5$, $x^6$)
+    
+    \item Hardware implementation (Chua circuit, electromechanical 
+    systems)
+    
+    \item Theoretical analysis of learning convergence
+    
+    \item Investigation of spontaneous orbit transitions
+\end{enumerate}
+
+\section*{Acknowledgments}
+
+This study was financed in part by the Coordenação de Aperfeiçoamento de Pessoal de Nível Superior - Brasil (CAPES) - Finance Code 001.
+
+\bibliographystyle{ieeetr}
+\bibliography{references.bib}
+
+\end{document} 
